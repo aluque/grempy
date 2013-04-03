@@ -288,29 +288,29 @@ class CylindricalLangevin(Cylindrical):
         super(CylindricalLangevin, self).update_h()
         self.update_j()
 
-
-
-    def save(self, g):
-        super(CylindricalLangevin, self).save(g)
+    def save_global(self, g):
+        super(CylindricalLangevin, self).save_global(g)
         g.attrs['nspecies'] = self.nspecies
 
         g.create_dataset('nu', data=self.nu, compression='gzip')
         g.create_dataset('wp', data=self.wp, compression='gzip')
+        
 
+    def save(self, g):
+        super(CylindricalLangevin, self).save(g)
         g.create_dataset('j', data=self.j, compression='gzip')
 
 
     def load_data(self, g):
         super(CylindricalLangevin, self).load_data(g)
 
-        self.nu[:] = array(g['nu'])
-        self.wp[:] = array(g['wp'])
         self.j[:] = array(g['j'])
 
         self.interpolate_e()
+
         
     @staticmethod
-    def load(g, set_dt=False, c=None):
+    def load(g, step, set_dt=False, c=None):
         """ Loads an instance from g and initializes all its data. """
         if isinstance(g, str):
             import h5py
@@ -326,20 +326,22 @@ class CylindricalLangevin(Cylindrical):
             c = CylindricalLangevin
 
         instance = c(box, dim, nspecies, nu, wp)
-        for key, val in g.iteritems():
+
+        gstep = g['steps/' + step]
+        for key, val in gstep.iteritems():
             if key[:5] == 'cpml_':
                 cpml = CylindricalCPML.load(val, instance)
                 instance.cpml.append(cpml)
                 
-        instance.load_data(g)
+        instance.load_data(gstep)
 
         if set_dt:
             instance.set_dt(self.dt, init=False)
         else:
             instance.dt = g.attrs['dt']
 
-        instance.te = g.attrs['te']
-        instance.th = g.attrs['th']
+        instance.te = gstep.attrs['te']
+        instance.th = gstep.attrs['th']
 
         return instance
 

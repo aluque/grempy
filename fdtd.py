@@ -395,6 +395,14 @@ class Cylindrical(object):
             cpml.set_dt(dt)
         
 
+    def save_global(self, g):
+        """ Saves the global properties of the simulation into g. 
+        In contrast to save, the values here do not change during a simulation.
+        """
+        g.create_dataset('box', data=self.box, compression='gzip')
+        g.create_dataset('dim', data=self.dim, compression='gzip')
+
+
     def save(self, g):
         """ Saves the state of this grid into g.  g has to satisfy the group
         interface of h5py.  """
@@ -402,9 +410,6 @@ class Cylindrical(object):
         g.attrs['te'] = self.te
         g.attrs['th'] = self.th
         g.attrs['timestamp'] = time.time()
-
-        g.create_dataset('box', data=self.box, compression='gzip')
-        g.create_dataset('dim', data=self.dim, compression='gzip')
 
         g.create_dataset('er', data=self.er.full, compression='gzip')
         g.create_dataset('ez', data=self.ez.full, compression='gzip')

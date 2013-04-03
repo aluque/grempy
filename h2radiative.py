@@ -18,16 +18,6 @@ class Radiative2d(CylindricalLangevin):
 
         self.nphotons = 2
         
-        self.rates = [
-            asfunction("saturn_rates.dat",
-                       xfactor=Td,
-                       usecols=(1, 14),
-                       log=False),
-            asfunction("saturn_rates.dat",
-                       xfactor=Td,
-                       usecols=(1, 12),
-                       log=False)]
-
         # Every species is located at the nodes, i.e. the same locations
         # as the interpolated electric field.
         self.n = zeros((self.dim.nr + 1, self.dim.nz + 1, self.nphotons))
@@ -36,7 +26,18 @@ class Radiative2d(CylindricalLangevin):
         self.nt = None
         self.ne = None
 
-        
+    def load_rates(self, rates_file):
+        self.rates = [
+            asfunction(rates_file,
+                       xfactor=Td,
+                       usecols=(1, 14),
+                       log=False),
+            asfunction(rates_file,
+                       xfactor=Td,
+                       usecols=(1, 12),
+                       log=False)]
+
+
     def step_photons(self):
         # First, calculate the E/N
         en = sqrt(sum(self.e**2, axis=2)) / self.nt
@@ -70,6 +71,7 @@ class Radiative2d(CylindricalLangevin):
             g.create_dataset(self.PHOTON_NAMES[i],
                              data=self.n[:, :, i], compression='gzip')
 
+
     def load_data(self, g):
         super(Radiative2d, self).load_data(g)
 
@@ -78,8 +80,9 @@ class Radiative2d(CylindricalLangevin):
             
 
     @staticmethod
-    def load(g, set_dt=False):
-        instance = CylindricalLangevin.load(g, set_dt=set_dt, c=Radiative2d)
+    def load(g, step, set_dt=False):
+        instance = CylindricalLangevin.load(g, step, 
+                                            set_dt=set_dt, c=Radiative2d)
     
         return instance
     
