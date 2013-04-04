@@ -258,7 +258,7 @@ def main():
                 + (Z_ + zeros(source_i[0].shape, dtype='i'),))
     
     
-    insteps = 1
+    insteps = 100
     nsave = int(params.output_dt / (insteps * params.dt))
     t = 0
     m = params.tau_f / params.tau_r
