@@ -103,12 +103,14 @@ def main():
             if not args.show and args.subplots is None:
                 ofile = args.output.format(step=step, var=var, rid=rid)
                 pylab.savefig(ofile)
+                pylab.close()
                 logging.info("File '%s' saved" % ofile)
 
         if not args.show and args.subplots is not None:
             ofile = args.output.format(step=step, var='_'.join(args.vars), 
                                        rid=rid)
             pylab.savefig(ofile)
+            pylab.close()
             logging.info("File '%s' saved" % ofile)
 
 
