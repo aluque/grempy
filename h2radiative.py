@@ -69,7 +69,8 @@ class Radiative2d(CylindricalLangevin):
 
         for i in xrange(self.nphotons):
             g.create_dataset(self.PHOTON_NAMES[i],
-                             data=self.n[:, :, i], compression='gzip')
+                             data=self.n[:, :, i], 
+                             compression='gzip')
 
 
     def load_data(self, g):

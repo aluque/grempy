@@ -221,7 +221,8 @@ class Cartesian3d(object):
         
     def save(self, g):
         """ Saves the state of this grid into g.  g has to satisfy the group
-        interface of h5py.  """
+        interface of h5py.  
+        """
         g.attrs['dt'] = self.dt
         g.attrs['te'] = self.te
         g.attrs['th'] = self.th
@@ -301,16 +302,17 @@ class Cylindrical(object):
         self.hz = staggered(self.dim, (False, True), neumann_axes=neumann)
         self.hphi = staggered(self.dim, (False, False), neumann_axes=neumann)
 
-
-    def interp(self, v, r, z):
-        """ Interpolates the value of v at location x, y. """
+    
+    
+    def interpolator(self, v):
+        """ Build and interpolator for v. """
 
         rbs = RectBivariateSpline(
             v.select(0, self.rf, self.rc),
             v.select(1, self.zf, self.zc),
             v.v)
 
-        return rbs(r, z)
+        return rbs
 
 
     def update_e(self):
@@ -403,26 +405,67 @@ class Cylindrical(object):
         g.create_dataset('dim', data=self.dim, compression='gzip')
 
 
-    def save(self, g):
+    def _save(self, g, save_cpml=True, f=None):
         """ Saves the state of this grid into g.  g has to satisfy the group
         interface of h5py.  """
+        if f is None:
+            f = lambda(x): x.full
+
         g.attrs['dt'] = self.dt
         g.attrs['te'] = self.te
         g.attrs['th'] = self.th
         g.attrs['timestamp'] = time.time()
 
-        g.create_dataset('er', data=self.er.full, compression='gzip')
-        g.create_dataset('ez', data=self.ez.full, compression='gzip')
-        g.create_dataset('ephi', data=self.ephi.full, compression='gzip')
+        g.create_dataset('er', data=f(self.er), compression='gzip')
+        g.create_dataset('ez', data=f(self.ez), compression='gzip')
+        g.create_dataset('ephi', data=f(self.ephi), compression='gzip')
 
-        g.create_dataset('hr', data=self.hr.full, compression='gzip')
-        g.create_dataset('hz', data=self.hz.full, compression='gzip')
-        g.create_dataset('hphi', data=self.hphi.full, compression='gzip')
+        g.create_dataset('hr', data=f(self.hr), compression='gzip')
+        g.create_dataset('hz', data=f(self.hz), compression='gzip')
+        g.create_dataset('hphi', data=f(self.hphi), compression='gzip')
         
+        if not save_cpml:
+            return
+
         for i, cpml in enumerate(self.cpml):
             g2 = g.create_group('cpml_%.3d' % i)
             cpml.save(g2)
             
+
+    def save(self, g):
+        self._save(g)
+
+
+    def track(self, g, r, z):
+        # This is not correct: for staggered grids, I am not
+        # taking the closest point of some vars.  It's only for
+        # output but should be fixed.
+        i = around(r / self.dr).astype('i')
+        j = around(z / self.dz).astype('i')
+        
+        def fmesh(d):
+            return d.v[i[:, newaxis], j[newaxis, :]]
+        
+        self._save(g, fmesh)
+
+
+    def resampled_save(self, g):
+        sr = linspace(self.box.r0 + self.dr, self.box.r1 - self.dr, 
+                      self.dim.nr / 100 + 1)
+        sz = linspace(self.box.z0 + self.dz, self.box.z1 - self.dz, 
+                      self.dim.nz / 100 + 1)
+
+        ier = self.interpolator(self.er)
+        iez = self.interpolator(self.ez)
+        
+        er = ier(sr, sz)
+        ez = iez(sr, sz)
+        
+        g.create_dataset('r', data=sr, compression='gzip')
+        g.create_dataset('z', data=sz, compression='gzip')
+        g.create_dataset('er', data=er, compression='gzip')
+        g.create_dataset('ez', data=ez, compression='gzip')
+
 
     def load_data(self, g):
         self.er.full[:] = array(g['er'])
@@ -885,7 +928,6 @@ def avg(a, n=1, axis=-1):
 def centers(x):
     """ Given an array of face coords, returns the center locations. """
     return 0.5 * avg(x)
-
 
 
 def main():

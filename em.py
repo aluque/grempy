@@ -31,17 +31,17 @@ class Parameters(ParamContainer):
         """ The directory that contains extra input files. """
         return s
 
-    @param()
+    @param(default='')
     def electron_density_file(s):
         """ A file to read the electron density from in h[km] n[cm^3]. """
         return s
 
-    @param()
+    @param(default='')
     def gas_density_file(s):
         """ A file to read the gas density from in h[km] n[cm^3]. """
         return s
 
-    @param()
+    @param(default='')
     def rates_file(s):
         """ File with reaction rates for the radiative model. """
         return s
@@ -131,10 +131,21 @@ class Parameters(ParamContainer):
         """ Lower boundary condition.  Use 0 for a cpml, != 0 for an electrode . """
         return int(s)
 
+    @param(default=[])
+    def track_r(s):
+        """ List of r-values to track. """
+        return array([float(x) for x in s])
+
+    @param(default=[])
+    def track_z(s):
+        """ List of z-values to track. """
+        return array([float(x) for x in s])
+
+
 def ne(z, fname):
     """ Loads the electron density profile and interpolates it into z. """
     iri = loadtxt(fname)
-    h, n = iri[:, 1] * co.kilo, iri[:, 0] * co.centi**-3
+    h, n = iri[:, 0] * co.kilo, iri[:, 1] * co.centi**-3
 
     #ipol = interp1d(h, log(n), bounds_error=False, fill_value=-inf)
     #n2 = exp(ipol(z))
@@ -166,6 +177,7 @@ def j_source(t, j0, tau_r, tau_f):
 
 def peak(t, A, tau, m):
     return m * A / (tau * (m - 1)) * (exp(-t / tau) - exp(-m * t / tau))
+
 
 
 def main():
@@ -220,7 +232,7 @@ def main():
     sim = CLASSES[params.simulation_class](box, dim, nspecies, nu, wp)
     if params.simulation_class == 'Radiative2d':
         sim.load_rates(frates)
-
+        sim.set_densities(nt_dens[newaxis, :], ne_dens[newaxis, :])
 
     flt = ones((2, 2))
     # Set the lower boundary as a perfect conductor:
@@ -230,7 +242,6 @@ def main():
     flt[R, 0] = False
     
 
-    sim.set_densities(nt_dens[newaxis, :], ne_dens[newaxis, :])
     
     sim.add_cpml_boundaries(params.ncpml, filter=flt)
     sim.set_dt(params.dt)
@@ -258,17 +269,19 @@ def main():
                 + (Z_ + zeros(source_i[0].shape, dtype='i'),))
     
     
-    insteps = 100
+    insteps = 10
     nsave = int(params.output_dt / (insteps * params.dt))
     t = 0
     m = params.tau_f / params.tau_r
 
     fp = h5py.File(ofile, 'w')
     params.h5_dump(fp)
-    params.pretty_dump('pretty.yaml')
     sim.save_global(fp)
 
     gsteps = fp.create_group('steps')
+    gtrack = fp.create_group('track')
+
+    
     for i in xrange(int(params.end_t / (insteps * params.dt))):
         with ContextTimer("t = %f ms" % (t / co.milli)):
             for j in xrange(insteps):
@@ -281,7 +294,14 @@ def main():
 
 
                 t += params.dt
-                
+        
+        # Save a coarser grid with higher time resolution
+        if len(params.track_r) > 0 and len(params.track_z) > 0:
+            step = "%.6d" % i
+            g = gtrack.create_group(step)
+            sim.track(g, params.track_r, params.track_z)
+            fp.flush()
+            
         if 0 == ((i - 1) % nsave):
             with ContextTimer("Saving step %d" % (i / nsave)):
                 step = "%.4d" % (i / nsave)

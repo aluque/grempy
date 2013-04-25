@@ -17,11 +17,25 @@ import cmaps
 X, Y, Z = 0, 1, 2
 import functools
 
+logger = logging.getLogger('em')
+logger.setLevel(logging.DEBUG)
+
+fh = logging.FileHandler('plot.log')
+fh.setLevel(logging.INFO)
+formatter = logging.Formatter("[%(asctime)s] %(message)s",
+                              "%a, %d %b %Y %H:%M:%S")
+fh.setFormatter(formatter)
+
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
+ch.setFormatter(formatter)
+
+logger.addHandler(fh)
+logger.addHandler(ch)
+logging.captureWarnings(True)
 
 def main():
-    logging.basicConfig(format='[%(asctime)s] %(message)s', 
-                        datefmt='%a, %d %b %Y %H:%M:%S',
-                        level=logging.DEBUG)
+    logger.info(" ".join(sys.argv))
 
     import argparse
     parser = argparse.ArgumentParser()
@@ -37,10 +51,6 @@ def main():
     parser.add_argument("-o", "--output",
                         help="Output file (may contain {rid} {step} and {var})", 
                         action='store', default='{rid}_{step}_{var}.png')
-
-    parser.add_argument("--subplots", help="Use 2 or 4 subplots", 
-                        action='store', type=int, 
-                        choices=[2, 4], default=None)
 
     parser.add_argument("--log", help="Logarithmic time scale", 
                         action='store_true', default=False)
@@ -58,7 +68,10 @@ def main():
                         action='store', default=None)
 
     parser.add_argument("--cmap", help="Use a dynamic colormap", 
-                        action='store', default=None)
+                        action='store', default='invhot')
+
+    parser.add_argument("--figsize", help="width height of the figure", 
+                        type=float, action='store', nargs=2, default=[12, 6])
     
 
     args = parser.parse_args()
@@ -78,40 +91,21 @@ def main():
     params = Parameters()
     params.h5_load(fp)
 
+    pylab.figure(figsize=args.figsize)
     for step in steps:
         sim = CLASSES[params.simulation_class].load(fp, step)
-        if args.subplots == 2:
-            pylab.clf()
-            pylab.figure(figsize=(20, 4))
-            pylab.subplots_adjust(left=0.065, right=0.98, wspace=0.07, top=0.95)
-            next_plot = functools.partial(pylab.subplot, 1, 2)
-        elif args.subplots == 4:
-            pylab.clf()
-            pylab.figure(figsize=(20, 8))
-            pylab.subplots_adjust(left=0.065, right=0.98, wspace=0.07, top=0.95)
-            next_plot = functools.partial(pylab.subplot, 2, 2)
-        else:
-            next_plot = lambda i: pylab.clf()
-            pylab.figure(figsize=(20, 8))
 
         for i, var in enumerate(args.vars):
-            next_plot(i + 1)
+            pylab.clf()
             f = VAR_FUNCS[var]
             v = f(sim, params)
             plot(sim, v, args, label=f.__doc__)
 
-            if not args.show and args.subplots is None:
+            if not args.show:
                 ofile = args.output.format(step=step, var=var, rid=rid)
                 pylab.savefig(ofile)
                 pylab.close()
-                logging.info("File '%s' saved" % ofile)
-
-        if not args.show and args.subplots is not None:
-            ofile = args.output.format(step=step, var='_'.join(args.vars), 
-                                       rid=rid)
-            pylab.savefig(ofile)
-            pylab.close()
-            logging.info("File '%s' saved" % ofile)
+                logger.info("File '%s' saved" % ofile)
 
 
     if args.show:
@@ -162,6 +156,12 @@ def en(sim, params):
     En[:] = where(isfinite(En), En, 0.0)
 
     return En / Td
+
+
+@plotting_var
+def photons(sim, params):
+    "Integrated photon emissions [$\\mathdefault{m^{-3}}$]"
+    return sim.n[:, :, 0]
 
 
 def plot(sim, var, args, label=None, reduce_res=True):
@@ -218,14 +218,19 @@ def plot(sim, var, args, label=None, reduce_res=True):
 
     if args.zlim is None:
         zlim = [zf[0], zf[-1]]
+    
+    pylab.text(0.975, 0.025, "t = %.4f ms" % (sim.te / co.milli),
+               color="#883333",
+               ha='right', va='bottom', size='x-large',
+               transform=pylab.gca().transAxes)
 
+    pylab.axis('scaled')
     pylab.xlim([v / co.kilo for v in rlim])
     pylab.ylim([v / co.kilo for v in zlim])
 
-    pylab.axis('scaled')
     pylab.ylabel("z [km]")
     pylab.xlabel("r [km]")
-
+    #pylab.tight_layout()
 
 if __name__ == '__main__':
     main()

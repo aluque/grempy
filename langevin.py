@@ -159,7 +159,6 @@ class Langevin(Cartesian3d):
         g.create_dataset('nu', data=self.nu, compression='gzip')
         g.create_dataset('wp', data=self.wp, compression='gzip')
         g.create_dataset('wb', data=self.wb, compression='gzip')
-
         g.create_dataset('j', data=self.j, compression='gzip')
 
 
