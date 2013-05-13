@@ -299,7 +299,7 @@ def main():
         if len(params.track_r) > 0 and len(params.track_z) > 0:
             step = "%.6d" % i
             g = gtrack.create_group(step)
-            sim.track(g, params.track_r, params.track_z)
+            sim.track(g, params.track_r * co.kilo, params.track_z * co.kilo)
             fp.flush()
             
         if 0 == ((i - 1) % nsave):
