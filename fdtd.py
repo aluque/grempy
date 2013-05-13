@@ -446,7 +446,7 @@ class Cylindrical(object):
         def fmesh(d):
             return d.v[i[:, newaxis], j[newaxis, :]]
         
-        self._save(g, fmesh)
+        self._save(g, save_cpml=False, f=fmesh)
 
 
     def resampled_save(self, g):
