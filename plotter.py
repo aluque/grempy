@@ -6,6 +6,7 @@ import functools
 
 from numpy import *
 import scipy.constants as co
+import matplotlib
 import pylab
 from matplotlib.colors import LogNorm
 import h5py
@@ -16,6 +17,8 @@ import cmaps
 
 X, Y, Z = 0, 1, 2
 import functools
+
+matplotlib.rc('font', size=22)
 
 logger = logging.getLogger('em')
 logger.setLevel(logging.DEBUG)
@@ -91,12 +94,12 @@ def main():
     params = Parameters()
     params.h5_load(fp)
 
-    pylab.figure(figsize=args.figsize)
     for step in steps:
         sim = CLASSES[params.simulation_class].load(fp, step)
 
         for i, var in enumerate(args.vars):
             pylab.clf()
+            pylab.figure(figsize=args.figsize)
             f = VAR_FUNCS[var]
             v = f(sim, params)
             plot(sim, v, args, label=f.__doc__)
