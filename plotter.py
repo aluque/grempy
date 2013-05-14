@@ -12,10 +12,11 @@ from matplotlib.colors import LogNorm
 import h5py
 from langevin import CylindricalLangevin
 from fdtd import avg
-from em import Parameters, CLASSES
+from em import Parameters
 import cmaps
 
 X, Y, Z = 0, 1, 2
+R, Z_, PHI = 0, 1, 2
 import functools
 
 matplotlib.rc('font', size=22)
@@ -95,7 +96,7 @@ def main():
     params.h5_load(fp)
 
     for step in steps:
-        sim = CLASSES[params.simulation_class].load(fp, step)
+        sim = CylindricalLangevin.load(fp, step)
 
         for i, var in enumerate(args.vars):
             pylab.clf()
@@ -128,7 +129,7 @@ def jr(sim, params):
 @plotting_var
 def jz(sim, params):
     "$j_z [$\\mathdefault{A/m^2}$]"
-    return sum(avg(sim.j_(Z_), axis=Z_), axis=-1)
+    return avg(sim.j_(Z_), axis=Z_)
 
 @plotting_var
 def jphi(sim, params):
@@ -154,11 +155,15 @@ Td = 1e-17 * co.centi**2
 def en(sim, params):
     "Reduced Field $E/N$ [Td]"
     mun = params.mu_N
-    En = (eabs(sim, params) * co.elementary_charge / 
-          (mun * sim.nu[:, :, 0] * co.electron_mass))
+    En = eabs(sim, params) / sim.ngas
     En[:] = where(isfinite(En), En, 0.0)
 
     return En / Td
+
+@plotting_var
+def ne(sim, params):
+    "Electron density [$\\mathdefault{m^{-3}}$]"
+    return sim.ne
 
 
 @plotting_var

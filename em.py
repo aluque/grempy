@@ -6,19 +6,15 @@ import argparse
 
 from numpy import *
 import scipy.constants as co
-from scipy.interpolate import interp1d, splrep, splev
 import h5py
 
 from param import ParamContainer, param, positive, contained_in
 
 from langevin import CylindricalLangevin
-from h2radiative import Radiative2d
 from fdtd import CylBox, CylDimensions, avg
 from contexttimer import ContextTimer
 R, Z_, PHI = 0, 1, 2
 
-CLASSES = {'Radiative2d': Radiative2d,
-           'CylindricalLangevin': CylindricalLangevin}
 
 class Parameters(ParamContainer):
     @param(default='CylindricalLangevin')
@@ -42,8 +38,8 @@ class Parameters(ParamContainer):
         return s
 
     @param(default='')
-    def rates_file(s):
-        """ File with reaction rates for the radiative model. """
+    def ionization_rate_file(s):
+        """ A file to read the ionization rate from in E/n[Td] k[m^3 s^-1]. """
         return s
 
     @param(positive, default=0.1 * co.micro)
@@ -142,31 +138,6 @@ class Parameters(ParamContainer):
         return array([float(x) for x in s])
 
 
-def ne(z, fname):
-    """ Loads the electron density profile and interpolates it into z. """
-    iri = loadtxt(fname)
-    h, n = iri[:, 0] * co.kilo, iri[:, 1] * co.centi**-3
-
-    #ipol = interp1d(h, log(n), bounds_error=False, fill_value=-inf)
-    #n2 = exp(ipol(z))
-
-    tck = splrep(h, log(n), k=1)
-    n2 = exp(splev(z, tck))
-
-    return n2
-
-
-def nt(z, fname):
-    """ Loads the density of neutrals and interpolates into z. """
-    atm = loadtxt(fname)
-    h = atm[:, 0] * co.kilo
-    n = atm[:, 1] * co.centi**-3
-
-    ipol = interp1d(h, log(n), bounds_error=False, fill_value=-inf)
-    ni = exp(ipol(z))
-
-    return ni
-
 
 def j_source(t, j0, tau_r, tau_f):
     if t < tau_r:
@@ -181,6 +152,7 @@ def peak(t, A, tau, m):
 
 
 def main():
+    # == READ PARAMETERS ==
     parser = argparse.ArgumentParser()
     parser.add_argument("input", help="Parameter input file")
     parser.add_argument("-o", "--output", help="Output file", default=None)
@@ -191,7 +163,7 @@ def main():
     params.file_load(args.input)
 
 
-    # Sets the simulation domain
+    # == INIT THE SIMULATION INSTANCE ==
     box = CylBox(0, params.r * co.kilo, 
                  params.z0 * co.kilo, 
                  params.z1 * co.kilo)
@@ -200,52 +172,30 @@ def main():
 
     z = linspace(params.z0 * co.kilo, params.z1 * co.kilo, dim.nz + 1)
 
-    # Loads extra files containing the densities of neutrals and electrons
-    # These values are interpolated at z
-    nt_dens = nt(z, 
-                 os.path.join(params.input_dir, params.gas_density_file))
-
-    ne_dens = ne(z, 
-                 os.path.join(params.input_dir, params.electron_density_file))
 
 
-    mu = params.mu_N / nt_dens
+    sim = CylindricalLangevin(box, dim)
 
-    nu = co.elementary_charge / (mu * co.electron_mass)
-    wp = sqrt(co.elementary_charge**2 
-              * ne_dens / co.electron_mass / co.epsilon_0)
+    # == LOAD FILES ==
+    sim.load_ngas(os.path.join(params.input_dir, params.gas_density_file))
+    sim.load_ne(os.path.join(params.input_dir, params.electron_density_file))
+    sim.load_ionization(os.path.join(params.input_dir, 
+                                     params.ionization_rate_file))
+    sim.set_mun(params.mu_N)
 
-    nu[-params.ncpml:] = 0
-    wp[-params.ncpml:] = 0
-    
-    # This is the relaxation time.  It puts a constraint on dt
-    tau = nu / wp**2
-    print "Shortest relaxation time is tau = %g s" % nanmin(tau)
-    
-    # Now we upgrade the parameters to the appropiate shapes.
-    nu = nu[newaxis, :, newaxis]
-    wp = wp[newaxis, :, newaxis]
 
-    nspecies = 1
-    frates = os.path.join(params.input_dir, params.rates_file)
-
-    sim = CLASSES[params.simulation_class](box, dim, nspecies, nu, wp)
-    if params.simulation_class == 'Radiative2d':
-        sim.load_rates(frates)
-        sim.set_densities(nt_dens[newaxis, :], ne_dens[newaxis, :])
-
+    # == SET BOUNDARY CONDITIONS ==
     flt = ones((2, 2))
     # Set the lower boundary as a perfect conductor:
     if params.lower_boundary != 0:
         flt[Z_, 0] = False
     
     flt[R, 0] = False
+        
+    sim.add_cpml_boundaries(params.ncpml, filter=flt)
     
 
-    
-    sim.add_cpml_boundaries(params.ncpml, filter=flt)
-    sim.set_dt(params.dt)
-    
+    # == SET SOURCE ==
     # We set the sources by using a filter in x and y
     rsource = params.r_source * co.kilo
     z0source = params.z0_source * co.kilo
@@ -268,12 +218,10 @@ def main():
                 + (zeros(source_i[0].shape, dtype='i'),)
                 + (Z_ + zeros(source_i[0].shape, dtype='i'),))
     
-    
-    insteps = 10
-    nsave = int(params.output_dt / (insteps * params.dt))
-    t = 0
     m = params.tau_f / params.tau_r
+    
 
+    # == PREPARE H5DF OUTPUT ==
     fp = h5py.File(ofile, 'w')
     params.h5_dump(fp)
     sim.save_global(fp)
@@ -281,13 +229,21 @@ def main():
     gsteps = fp.create_group('steps')
     gtrack = fp.create_group('track')
 
-    
+
+    # == PREPARE THE MAIN LOOP ==
+    sim.set_dt(params.dt)
+    insteps = 10
+    nsave = int(params.output_dt / (insteps * params.dt))
+    t = 0
+
+
+    # == THE MAIN LOOP ==
     for i in xrange(int(params.end_t / (insteps * params.dt))):
         with ContextTimer("t = %f ms" % (t / co.milli)):
             for j in xrange(insteps):
                 sim.update_e()
                 sim.update_h()
-                sim.j[:, si0:si1 + 1, 0, Z_] = \
+                sim.j[:, si0:si1 + 1, Z_] = \
                     (exp(-r2/rsource**2) 
                      * peak(sim.th, params.Q / source_s, 
                             params.tau_r, m))[:, newaxis]

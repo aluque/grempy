@@ -199,6 +199,7 @@ class Cartesian3d(object):
     def add_cpml_boundaries(self, n, filter=None):
         """ Adds six cpml layers, one for each of the boundaries of the
         simulation. """
+        
         for i in X, Y, Z:
             if filter is None or filter[i, 0]:
                 self.new_cpml(i, n)
