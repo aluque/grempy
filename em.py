@@ -17,11 +17,6 @@ R, Z_, PHI = 0, 1, 2
 
 
 class Parameters(ParamContainer):
-    @param(default='CylindricalLangevin')
-    def simulation_class(s):
-        """ Class of the simulation """
-        return s
-
     @param(default=os.path.expanduser("~/projects/em/"))
     def input_dir(s):
         """ The directory that contains extra input files. """
@@ -120,6 +115,11 @@ class Parameters(ParamContainer):
     @param(positive, default=10)
     def ncpml(s):
         """ Number of cells in the convoluted perfectly matching layers."""
+        return int(s)
+
+    @param(default=20)
+    def dens_update_lower(s):
+        """ Densities will not be updated below this threshold in km.  This is to avoid the effects of high fields close to the source. """
         return int(s)
 
     @param(default=0)
@@ -232,6 +232,7 @@ def main():
 
     # == PREPARE THE MAIN LOOP ==
     sim.set_dt(params.dt)
+    sim.dens_update_lower = params.dens_update_lower
     insteps = 10
     nsave = int(params.output_dt / (insteps * params.dt))
     t = 0

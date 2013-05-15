@@ -36,7 +36,7 @@ class CylindricalLangevin(Cylindrical):
         self.j = zeros((dim.nr + 1, dim.nz + 1, 3))
         self.e = zeros((dim.nr + 1, dim.nz + 1, 3))
         self.eabs = zeros((dim.nr + 1, dim.nz + 1))
-        
+        self.dens_update_lower = 0.0
 
     def load_ne(self, fname):
         """ Loads the electron density profile and interpolates it into z. """
@@ -101,6 +101,7 @@ class CylindricalLangevin(Cylindrical):
         self.Kp[:] = where(isfinite(self.Kp), self.Kp, 0)
         self.K = empty_like(self.ne)
        
+
     def interpolate_e(self):
         """ Interpolate E{x, y, z} at the locations of J. """
         
@@ -154,6 +155,9 @@ class CylindricalLangevin(Cylindrical):
         """ Updates the electron density.  Uses an implicit method,
         so we need to call this after update_e. """
         nu = self.ngas * self.ionization_k(self.eabs / self.ngas)
+        
+        nu[:, :] = where(self.zf[newaxis, :] >= self.dens_update_lower,
+                         nu[:, :], 0.0)
         self.ne[:, :] /= (1 - self.dt * nu)
 
 
