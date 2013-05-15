@@ -49,8 +49,7 @@ def main():
                         help="Step to plot ('all' and 'latest' accepted)",
                         default=None)
 
-    parser.add_argument("vars", help="Variable(s) to plot", 
-                        default=[], nargs='+')
+    parser.add_argument("var", help="Variable to plot")
 
     parser.add_argument("-o", "--output",
                         help="Output file (may contain {rid} {step} and {var})", 
@@ -98,18 +97,17 @@ def main():
     for step in steps:
         sim = CylindricalLangevin.load(fp, step)
 
-        for i, var in enumerate(args.vars):
-            pylab.clf()
-            pylab.figure(figsize=args.figsize)
-            f = VAR_FUNCS[var]
-            v = f(sim, params)
-            plot(sim, v, args, label=f.__doc__)
+        pylab.figure(figsize=args.figsize)
+        pylab.clf()
+        f = VAR_FUNCS[args.var]
+        v = f(sim, params)
+        plot(sim, v, args, label=f.__doc__)
 
-            if not args.show:
-                ofile = args.output.format(step=step, var=var, rid=rid)
-                pylab.savefig(ofile)
-                pylab.close()
-                logger.info("File '%s' saved" % ofile)
+        if not args.show:
+            ofile = args.output.format(step=step, var=args.var, rid=rid)
+            pylab.savefig(ofile)
+            pylab.close()
+            logger.info("File '%s' saved" % ofile)
 
 
     if args.show:
