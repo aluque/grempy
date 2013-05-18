@@ -61,6 +61,21 @@ class CylindricalLangevin(Cylindrical):
         self._update_mu()
 
 
+    def load_ionization(self, fname):
+        """ Loads the ionization rate from a file. """
+        en, ionization = loadtxt(fname, unpack=True)
+        en = r_[0.0, en]
+        ionization = r_[0.0, ionization]
+
+        # Here we allow out-of-bounds values but return inf.
+        # The reason is that we may have out-of-bound values close to the
+        # source but they are dropped anyway by dens_update_lower;
+        # however, we do not want to go around carrying incorrect values,
+        # so we simply set them to inf.
+        self.ionization_k = interp1d(en * TOWNSEND, ionization,
+                                     bounds_error=False, fill_value=inf)
+
+
     def _update_mu(self):
         try:
             self.mu = self.mun / self.ngas
@@ -68,17 +83,10 @@ class CylindricalLangevin(Cylindrical):
         except AttributeError:
             pass
 
+
     def set_mun(self, mun):
         self.mun = mun
         self._update_mu()
-
-
-    def load_ionization(self, fname):
-        en, ionization = loadtxt(fname, unpack=True)
-        en = r_[0.0, en]
-        ionization = r_[0.0, ionization]
-
-        self.ionization_k = interp1d(en * TOWNSEND, ionization)
 
 
     def set_dt(self, dt, **kwargs):

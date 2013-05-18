@@ -369,6 +369,12 @@ class Cylindrical(object):
         self.update_e(dt)
         self.update_h(dt)
 
+        # We check for infinities to avoid wasting computations.
+        # We check only er because any inf or nan will anyhow propagate
+        # to all field components in a few timesteps
+        if not all(isfinite(self.er.v)):
+            raise ValueError("Non-finite value reached")
+
 
     def new_cpml(self, *args, **kwargs):
         cpml = CylindricalCPML(self, *args, **kwargs)

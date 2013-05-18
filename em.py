@@ -186,8 +186,8 @@ def main():
 
     # == SET BOUNDARY CONDITIONS ==
     flt = ones((2, 2))
-    # Set the lower boundary as a perfect conductor:
     if params.lower_boundary != 0:
+        # Set the lower boundary as a perfect conductor:
         flt[Z_, 0] = False
     
     flt[R, 0] = False
@@ -232,7 +232,7 @@ def main():
 
     # == PREPARE THE MAIN LOOP ==
     sim.set_dt(params.dt)
-    sim.dens_update_lower = params.dens_update_lower
+    sim.dens_update_lower = params.dens_update_lower * co.kilo
     insteps = 10
     nsave = int(params.output_dt / (insteps * params.dt))
     t = 0
