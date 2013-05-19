@@ -94,6 +94,11 @@ def main():
     params = Parameters()
     params.h5_load(fp)
 
+    if args.show and len(steps) > 1:
+        logger.error(
+            "For your own good, --show is incompatible with more than 1 plot.")
+        sys.exit(-1)
+
     for step in steps:
         sim = CylindricalLangevin.load(fp, step)
 
