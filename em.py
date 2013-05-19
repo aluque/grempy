@@ -203,21 +203,11 @@ def main():
 
     r2 = sim.rf**2
     source_s = pi * sim.rf[r2 <= rsource**2][-1]**2
-    source_flt = logical_and(
-        logical_and(r2[:, newaxis] <= rsource**2,
-                    sim.zf[newaxis, :] <= z1source),
-        sim.zf[newaxis, :] >= z0source)
     source_zflt = logical_and(sim.zf[newaxis, :] <= z1source, 
                               sim.zf[newaxis, :] >= z0source)
     
     si0, si1 = [nonzero(source_zflt)[1][i] for i in 0, -1]
 
-    source_i = nonzero(source_zflt)
-    # We add an index to set the species and one to set the coordinate (Z)
-    source_i = (source_i
-                + (zeros(source_i[0].shape, dtype='i'),)
-                + (Z_ + zeros(source_i[0].shape, dtype='i'),))
-    
     m = params.tau_f / params.tau_r
     
 
