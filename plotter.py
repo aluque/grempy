@@ -3,6 +3,8 @@ import os
 from warnings import warn
 import logging
 import functools
+from pprint import pprint
+import time
 
 from numpy import *
 import scipy.constants as co
@@ -45,15 +47,28 @@ def main():
     parser = argparse.ArgumentParser()
 
     parser.add_argument("input", help="HDF5 input file")
-    parser.add_argument("step", 
-                        help="Step to plot ('all' and 'latest' accepted)",
-                        default=None)
+    parser.add_argument("var", 
+                        nargs='?',
+                        default=None,
+                        help="Variable to plot")
 
-    parser.add_argument("var", help="Variable to plot")
+    parser.add_argument("step", 
+                        nargs='?',
+                        help="Step to plot ('all' and 'latest' accepted)",
+                        default='latest')
+
 
     parser.add_argument("-o", "--output",
                         help="Output file (may contain {rid} {step} and {var})", 
                         action='store', default='{rid}_{step}_{var}.png')
+
+    parser.add_argument("--list", "-l",
+                        help="List all the simulation steps", 
+                        action='store_true', default=False)
+
+    parser.add_argument("--parameters", "-p",
+                        help="Show the simulation parameters", 
+                        action='store_true', default=False)
 
     parser.add_argument("--log", help="Logarithmic time scale", 
                         action='store_true', default=False)
@@ -94,10 +109,22 @@ def main():
     params = Parameters()
     params.h5_load(fp)
 
+    if args.parameters:
+        dump_params(params)
+
+    if args.list:
+        list_steps(fp)
+
     if args.show and len(steps) > 1:
         logger.error(
             "For your own good, --show is incompatible with more than 1 plot.")
         sys.exit(-1)
+
+    if args.var is None:
+        sys.exit(0)
+
+    if len(steps) > 1:
+        logger.info("Plotting %d steps." % len(steps))
 
     for step in steps:
         sim = CylindricalLangevin.load(fp, step)
@@ -118,6 +145,17 @@ def main():
     if args.show:
         pylab.show()
 
+
+def dump_params(params):
+    pprint(params.metadict())
+
+
+def list_steps(fp):
+    all_steps = fp['steps'].keys()
+    for step in all_steps:
+        g = fp['steps/%s' % step]
+        print "%s    te = %6.5g ms  [%s]" % (step, g.attrs['te'] / co.milli, 
+                                             time.ctime(g.attrs['timestamp']))
 
 VAR_FUNCS = {}
 def plotting_var(func):
