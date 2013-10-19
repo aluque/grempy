@@ -258,7 +258,7 @@ def main():
                 sim.j[:, si0:si1 + 1, Z_] = \
                     (exp(-r2/rsource**2) 
                      * peak(sim.th, params.Q / source_s, 
-                            params.tau_r, m))[:, newaxis]
+                            params.tau_f, m))[:, newaxis]
                 for p in plugins:
                     p.update_h(sim)
 
