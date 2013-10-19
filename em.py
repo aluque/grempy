@@ -137,6 +137,10 @@ class Parameters(ParamContainer):
         """ List of z-values to track. """
         return array([float(x) for x in s])
 
+    @param(default=[])
+    def plugins(s):
+        """ List of plugins for the simulation. """
+        return list(s)
 
 
 def j_source(t, j0, tau_r, tau_f):
@@ -150,6 +154,15 @@ def peak(t, A, tau, m):
     return m * A / (tau * (m - 1)) * (exp(-t / tau) - exp(-m * t / tau))
 
 
+def import_object(s):
+    """ Tanslates module.object into __import__("module").getattr("object")
+    """
+    splitted = s.split('.')
+    mod, obj = '.'.join(splitted[:-1]), splitted[-1]
+    plugins = __import__('plugins.%s' % mod)
+
+    return getattr(getattr(plugins, mod), obj)
+    
 
 def main():
     # == READ PARAMETERS ==
@@ -162,7 +175,9 @@ def main():
     params = Parameters()
     params.file_load(args.input)
 
+    plugins = [import_object(s)(params) for s in params.plugins]
 
+    
     # == INIT THE SIMULATION INSTANCE ==
     box = CylBox(0, params.r * co.kilo, 
                  params.z0 * co.kilo, 
@@ -171,8 +186,6 @@ def main():
     dim = CylDimensions(params.r_cells, params.z_cells)
 
     z = linspace(params.z0 * co.kilo, params.z1 * co.kilo, dim.nz + 1)
-
-
 
     sim = CylindricalLangevin(box, dim)
 
@@ -189,6 +202,10 @@ def main():
     if params.lower_boundary != 0:
         # Set the lower boundary as a perfect conductor:
         flt[Z_, 0] = False
+        
+        # We also have to set a Neumann bc in hphi for a conductor
+        sim.hphi.neumann_axes.append((Z_, 0, 1))
+
     
     flt[R, 0] = False
         
@@ -226,19 +243,24 @@ def main():
     insteps = 10
     nsave = int(params.output_dt / (insteps * params.dt))
     t = 0
-
+    for p in plugins:
+        p.initialize(sim)
 
     # == THE MAIN LOOP ==
     for i in xrange(int(params.end_t / (insteps * params.dt))):
         with ContextTimer("t = %f ms" % (t / co.milli)):
             for j in xrange(insteps):
                 sim.update_e()
+                for p in plugins:
+                    p.update_e(sim)
+
                 sim.update_h()
                 sim.j[:, si0:si1 + 1, Z_] = \
                     (exp(-r2/rsource**2) 
                      * peak(sim.th, params.Q / source_s, 
                             params.tau_r, m))[:, newaxis]
-
+                for p in plugins:
+                    p.update_h(sim)
 
                 t += params.dt
         
@@ -255,6 +277,9 @@ def main():
 
                 g = gsteps.create_group(step)
                 sim.save(g)
+                for p in plugins:
+                    p.save(sim, g)
+
                 fp.flush()
             
 

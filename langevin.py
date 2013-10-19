@@ -39,7 +39,15 @@ class CylindricalLangevin(Cylindrical):
         self.dens_update_lower = 0.0
 
     def load_ne(self, fname):
-        """ Loads the electron density profile and interpolates it into z. """
+        """ Loads the electron density profile and interpolates it into z. 
+        If fname can be interpreted as a float, uses that value.
+        
+        """
+        try:
+            self.ne[:, :] = float(fname)
+        except ValueError:
+            pass
+
         iri = loadtxt(fname)
         h, n = iri[:, 0] * co.kilo, iri[:, 1] * co.centi**-3
 
@@ -52,12 +60,16 @@ class CylindricalLangevin(Cylindrical):
 
     def load_ngas(self, fname):
         """ Loads the density of neutrals and interpolates into z. """
-        atm = loadtxt(fname)
-        h = atm[:, 0] * co.kilo
-        n = atm[:, 1] * co.centi**-3
+        try:
+            self.ngas[:, :] = float(fname)
+        except ValueError:
+            atm = loadtxt(fname)
+            h = atm[:, 0] * co.kilo
+            n = atm[:, 1] * co.centi**-3
 
-        ipol = interp1d(h, log(n), bounds_error=False, fill_value=-inf)
-        self.ngas[:, :] = exp(ipol(self.zf))[newaxis, :]
+            ipol = interp1d(h, log(n), bounds_error=False, fill_value=-inf)
+            self.ngas[:, :] = exp(ipol(self.zf))[newaxis, :]
+
         self._update_mu()
 
 

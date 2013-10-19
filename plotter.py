@@ -8,14 +8,21 @@ import time
 
 from numpy import *
 import scipy.constants as co
-import matplotlib
-import pylab
-from matplotlib.colors import LogNorm
 import h5py
+try:
+    import matplotlib
+    import pylab
+    from matplotlib.colors import LogNorm
+    import cmaps
+except ImportError:
+    # There are a few things that we can do without these libraries,
+    # so we allow an exception to be raised later
+    warn("Unable to import matplotlib")
+
 from langevin import CylindricalLangevin
 from fdtd import avg
-from em import Parameters
-import cmaps
+from em import Parameters, import_object
+
 
 X, Y, Z = 0, 1, 2
 R, Z_, PHI = 0, 1, 2
@@ -61,6 +68,10 @@ def main():
     parser.add_argument("-o", "--output",
                         help="Output file (may contain {rid} {step} and {var})", 
                         action='store', default='{rid}_{step}_{var}.png')
+
+    parser.add_argument("-d", "--outdir",
+                        help="Output directory (may contain {rid} and {var})", 
+                        action='store', default='{rid}')
 
     parser.add_argument("--list", "-l",
                         help="List all the simulation steps", 
@@ -109,8 +120,11 @@ def main():
     params = Parameters()
     params.h5_load(fp)
 
+    plugins = [import_object(s)(params, load_files=False) 
+               for s in params.plugins]
+
     if args.parameters:
-        dump_params(params)
+        dump_params(fp)
 
     if args.list:
         list_steps(fp)
@@ -126,8 +140,18 @@ def main():
     if len(steps) > 1:
         logger.info("Plotting %d steps." % len(steps))
 
+    outdir = args.outdir.format(rid=rid, var=args.var)
+    try:
+        os.mkdir(outdir)
+    except OSError:
+        pass
+
+
     for step in steps:
         sim = CylindricalLangevin.load(fp, step)
+        for p in plugins:
+            p.initialize(sim)
+            p.load_data(sim, fp['steps/%s' % step])
 
         pylab.figure(figsize=args.figsize)
         pylab.clf()
@@ -137,6 +161,7 @@ def main():
 
         if not args.show:
             ofile = args.output.format(step=step, var=args.var, rid=rid)
+            ofile = os.path.join(outdir, ofile)
             pylab.savefig(ofile)
             pylab.close()
             logger.info("File '%s' saved" % ofile)
@@ -146,8 +171,8 @@ def main():
         pylab.show()
 
 
-def dump_params(params):
-    pprint(params.metadict())
+def dump_params(fp):
+    pprint(dict((str(k), v) for k, v in fp.attrs.iteritems()))
 
 
 def list_steps(fp):
@@ -208,9 +233,26 @@ def ne(sim, params):
 
 
 @plotting_var
+def fulcher(sim, params):
+    "Integrated Fulcher photon emissions [$\\mathdefault{m^{-3}}$]"
+    return sim.nphotons[:, :, 0]
+
+
+@plotting_var
+def cont(sim, params):
+    "Integrated continuum photon emissions [$\\mathdefault{m^{-3}}$]"
+    return sim.nphotons[:, :, 1]
+
+@plotting_var
 def photons(sim, params):
     "Integrated photon emissions [$\\mathdefault{m^{-3}}$]"
-    return sim.n[:, :, 0]
+    # Let's calculate here the total of photons and inform the user.
+    photons = sum(sim.nphotons[:, :, :], axis=2)
+    total = sim.dr * sim.dz * sum(2 * pi * photons * sim.rf[:, newaxis])
+    print "Total number of photons: %g" % total
+    return photons
+
+
 
 
 def plot(sim, var, args, label=None, reduce_res=True):
@@ -268,7 +310,7 @@ def plot(sim, var, args, label=None, reduce_res=True):
     if args.zlim is None:
         zlim = [zf[0], zf[-1]]
     
-    pylab.text(0.975, 0.025, "t = %.4f ms" % (sim.te / co.milli),
+    pylab.text(0.975, 0.025, "t = %.2f ms" % (sim.te / co.milli),
                color="#883333",
                ha='right', va='bottom', size='x-large',
                transform=pylab.gca().transAxes)
