@@ -216,6 +216,11 @@ def eabs(sim, params):
     "Electric field $|E|$ [V/m]"
     return sqrt(sum(sim.e**2, axis=-1))
 
+@plotting_var
+def max_eabs(sim, params):
+    "Max. Electric field $|E|$ [V/m]"
+    return sim.maxe
+
 Td = 1e-17 * co.centi**2
 @plotting_var
 def en(sim, params):
@@ -226,10 +231,25 @@ def en(sim, params):
 
     return En / Td
 
+
+@plotting_var
+def max_en(sim, params):
+    "Max. Reduced Field $E/N$ [Td]"
+    mun = params.mu_N
+    En = max_eabs(sim, params) / sim.ngas
+    En[:] = where(isfinite(En), En, 0.0)
+
+    return En / Td
+
 @plotting_var
 def ne(sim, params):
     "Electron density [$\\mathdefault{m^{-3}}$]"
     return sim.ne
+
+@plotting_var
+def ne_cm(sim, params):
+    "Electron density [$\\mathdefault{cm^{-3}}$]"
+    return sim.ne / co.centi**-3
 
 
 @plotting_var
@@ -252,7 +272,21 @@ def photons(sim, params):
     print "Total number of photons: %g" % total
     return photons
 
+@plotting_var
+def photons_cm(sim, params):
+    "Integrated photon emissions [$\\mathdefault{cm^{-3}}$]"
+    return photons(sim, params) / co.centi**-3
 
+
+@plotting_var
+def energy(sim, params):
+    "Deposited energy density [$\\mathdefault{J m^{-3}}$]"
+    return sim.energy[:, :]
+
+@plotting_var
+def energy_cm(sim, params):
+    "Deposited energy density [$\\mathdefault{J cm^{-3}}$]"
+    return sim.energy[:, :] / co.centi**-3
 
 
 def plot(sim, var, args, label=None, reduce_res=True):
@@ -294,6 +328,11 @@ def plot(sim, var, args, label=None, reduce_res=True):
 
         #cmap.center = -vmin / (vmax - vmin)
         plot_args['cmap'] = cmap
+
+    dr = rf[1] - rf[0]
+    dz = zf[1] - zf[0]
+    total = (2 * pi * dr * dz * sum(var * rf[:, newaxis]))
+    print "Total = %g" % (total)
 
     pylab.pcolor(rf / co.kilo,
                  zf / co.kilo,
