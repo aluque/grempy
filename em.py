@@ -17,6 +17,10 @@ R, Z_, PHI = 0, 1, 2
 
 
 class Parameters(ParamContainer):
+    """ Container class for the input parameters.
+    Each field of this class corresponds to a parameter that will be read
+    from the input file. """
+
     @param(default=os.path.expanduser("~/projects/em/"))
     def input_dir(s):
         """ The directory that contains extra input files. """

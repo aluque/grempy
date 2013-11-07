@@ -178,6 +178,7 @@ class CylindricalLangevin(Cylindrical):
         
         nu[:, :] = where(self.zf[newaxis, :] >= self.dens_update_lower,
                          nu[:, :], 0.0)
+
         self.ne[:, :] /= (1 - self.dt * nu)
 
 
