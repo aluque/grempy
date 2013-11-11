@@ -47,9 +47,7 @@ logger.addHandler(fh)
 logger.addHandler(ch)
 logging.captureWarnings(True)
 
-def main():
-    logger.info(" ".join(sys.argv))
-
+def get_parser():
     import argparse
     parser = argparse.ArgumentParser()
 
@@ -102,7 +100,12 @@ def main():
     parser.add_argument("--figsize", help="width height of the figure", 
                         type=float, action='store', nargs=2, default=[12, 6])
     
+    return parser
 
+def main():
+    logger.info(" ".join(sys.argv))
+
+    parser = get_parser()
     args = parser.parse_args()
 
     fp = h5py.File(args.input)
