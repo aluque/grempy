@@ -3,7 +3,7 @@ grempy
 
 ``grempy`` (GRanada ElectroMagnetic PYthon simulator) is a pure Python Finite-Differences Time-Domain (`FDTD <http://en.wikipedia.org/wiki/Finite-difference_time-domain_method>`_) electromagnetic solver.  Its main purpose is the study of the interactions between a lightning-generated electromagnetic pulse (EMP) and the upper layers of planetary atmospheres.
 
-The code was developed by Alejandro Luque at the 
+The code was developed by `Alejandro Luque <http://www.iaa.es/~aluque>`_ at the 
 `Instituto de Astrofísica de Andalucía <http://www.iaa.es>`_ (IAA), `CSIC <http://www.csic.es>`_ and is released under the `GPLv2 <http://www.gnu.org/licenses/gpl-2.0.html>`_ license.  
 
 Although many good and open source general-purpose FDTD codes are available, 
@@ -22,7 +22,12 @@ Some features of ``grempy`` are:
     specified with text files that specify the altitude profiles of 
     background gas density and initial electron density.  The nonlinear 
     response of the electron density is also specified by an external file.
-    See section `Defining an atmosphere`_
   * A plug-in system permits the extension of the code with simple Python 
     modules.  This can be used, for example, to simulate additional chemical 
     processes.
+
+
+Documentation
+-------------
+
+You can find the documentation for ``grempy`` `here <http://www.iaa.es/~aluque/grempy/>`_.
