@@ -1,4 +1,9 @@
-""" Simulation of a lightning EMP using FDTD. """
+""" This is the entry-point module for EMP simulations.  To execute it, call
+it as::
+
+  python /path/to/em.py simulation.yaml
+
+"""
 
 import sys, os
 from os.path import splitext
@@ -30,6 +35,11 @@ class Parameters(ParamContainer):
     def electron_density_file(s):
         """ A file to read the electron density from in h[km] n[cm^3]. """
         return s
+
+    @param(default=0.0)
+    def electron_density_cutoff(s):
+        """ We impose a lower cutoff to the electron density, in [cm^-3]."""
+        return float(s)
 
     @param(default='')
     def gas_density_file(s):
@@ -155,6 +165,15 @@ def j_source(t, j0, tau_r, tau_f):
 
 
 def peak(t, A, tau, m):
+    """ The waveform of the lightning electric current.  
+
+    Arguments:
+
+      * *t*: The input time.  Usually an 1d Numpy array.
+      * *A*: The total charge transferred by the discharge.
+      * *tau*: Total duration of the impulse current.
+      * *tau*: Fraction of *tau* in the rise phase.
+     """
     return m * A / (tau * (m - 1)) * (exp(-t / tau) - exp(-m * t / tau))
 
 
@@ -169,6 +188,9 @@ def import_object(s):
     
 
 def main():
+    """ The main function of the module.  It reads input parameters
+    and runs the time-advancing loop. """
+
     # == READ PARAMETERS ==
     parser = argparse.ArgumentParser()
     parser.add_argument("input", help="Parameter input file")
@@ -195,7 +217,8 @@ def main():
 
     # == LOAD FILES ==
     sim.load_ngas(os.path.join(params.input_dir, params.gas_density_file))
-    sim.load_ne(os.path.join(params.input_dir, params.electron_density_file))
+    sim.load_ne(os.path.join(params.input_dir, params.electron_density_file),
+                cutoff=params.electron_density_cutoff * co.centi**-3)
     sim.load_ionization(os.path.join(params.input_dir, 
                                      params.ionization_rate_file))
     sim.set_mun(params.mu_N)

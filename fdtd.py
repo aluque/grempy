@@ -1,4 +1,5 @@
-""" The Yee 1966 algorithm in cartesian 3d. """
+"""  This module contains the code to implement the Yee centered-differences, 
+leapfrog FDTD algorithm."""
 
 from collections import namedtuple
 from numpy import *
@@ -16,7 +17,11 @@ X, Y, Z = 0, 1, 2
 R, Z_ = 0, 1
 
 class staggered(object):
+    """ This is a class to contain arrays representing variables in a grid 
+    that may be staggered along one or more dimensions. """
+
     def __init__(self, shape, inface, neumann_axes=[], **kwargs):
+        """ Instantiates a staggered object."""
         self.inface = inface
         self.inshape = shape
         self.bufshape = [n + 1 if s else n + 2 for n, s in zip(shape, inface)]
@@ -80,6 +85,9 @@ class staggered(object):
 
     
 class staggeredview(staggered):
+    """ A staggeredview subclasses staggered to implement sub-grids that
+    share memory with the wider grids.  """
+
     def __init__(self, parent, corner, shape):
         # corner here refers to cell coordinates without buffers.  We also add
         # buffers here but they actually belong to the parent grid and

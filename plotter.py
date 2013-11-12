@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import sys
 import os
 from warnings import warn
@@ -99,6 +101,10 @@ def get_parser():
 
     parser.add_argument("--figsize", help="width height of the figure", 
                         type=float, action='store', nargs=2, default=[12, 6])
+
+    parser.add_argument("--vars", 
+                        help="Print a list available variables to plot", 
+                        action='store_true', default=False)
     
     return parser
 
@@ -107,6 +113,10 @@ def main():
 
     parser = get_parser()
     args = parser.parse_args()
+
+    if args.vars:
+        list_vars()
+        sys.exit()
 
     fp = h5py.File(args.input)
     all_steps = fp['steps'].keys()
@@ -131,6 +141,7 @@ def main():
 
     if args.list:
         list_steps(fp)
+
 
     if args.show and len(steps) > 1:
         logger.error(
@@ -177,13 +188,17 @@ def main():
 def dump_params(fp):
     pprint(dict((str(k), v) for k, v in fp.attrs.iteritems()))
 
+def list_vars():
+    for vname, func in VAR_FUNCS.iteritems():
+        print("{}: {}".format(vname, func.__doc__))
+
 
 def list_steps(fp):
     all_steps = fp['steps'].keys()
     for step in all_steps:
         g = fp['steps/%s' % step]
-        print "%s    te = %6.5g ms  [%s]" % (step, g.attrs['te'] / co.milli, 
-                                             time.ctime(g.attrs['timestamp']))
+        print("%s    te = %6.5g ms  [%s]" % (step, g.attrs['te'] / co.milli, 
+                                             time.ctime(g.attrs['timestamp'])))
 
 VAR_FUNCS = {}
 def plotting_var(func):
@@ -272,7 +287,7 @@ def photons(sim, params):
     # Let's calculate here the total of photons and inform the user.
     photons = sum(sim.nphotons[:, :, :], axis=2)
     total = sim.dr * sim.dz * sum(2 * pi * photons * sim.rf[:, newaxis])
-    print "Total number of photons: %g" % total
+    print("Total number of photons: %g" % total)
     return photons
 
 @plotting_var
@@ -335,7 +350,7 @@ def plot(sim, var, args, label=None, reduce_res=True):
     dr = rf[1] - rf[0]
     dz = zf[1] - zf[0]
     total = (2 * pi * dr * dz * sum(var * rf[:, newaxis]))
-    print "Total = %g" % (total)
+    print("Total = %g" % (total))
 
     pylab.pcolor(rf / co.kilo,
                  zf / co.kilo,

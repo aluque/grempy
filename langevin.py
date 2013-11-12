@@ -1,4 +1,7 @@
-""" Code to solve the Langevin equation simultaneously with the FDTD. """
+""" 
+This module contains code that extends the classes in the
+:py:mod:`fdtd` module to solve the Langevin equation along with
+the Maxwell equations.  """
 
 from numpy import *
 import scipy.constants as co
@@ -16,12 +19,14 @@ class CylindricalLangevin(Cylindrical):
     electron density evolution equation. """
     def __init__(self, box, dim):
         """ Initializes a Langevin simulator.
-        * mun is the electron mobility times ngas (a scalar).
-        * ngas is the density of neutrals.  Its shape must be ngas[nr, nz]
-          but the r dimension can be broadcasted away (i.e. the shape
-          can be ngas[1, nz] and we assume that the density does not depend on
-          r.
-        * ne is the initial electron density.  Again, the r dimension
+
+        Arguments:
+          * *mun* is the electron mobility times ngas (a scalar).
+          * *ngas* is the density of neutrals.  Its shape must be 
+            ``ngas[nr, nz]`` but the *r* dimension can be broadcasted 
+            away (i.e. the shape can be ``ngas[1, nz]`` and we assume that 
+            the density does not depend on *r*.
+          * *ne* is the initial electron density.  Again, the *r* dimension
           may be broadcasted away, but in that case the array is expanded
           during the initialization.
         """
@@ -38,10 +43,10 @@ class CylindricalLangevin(Cylindrical):
         self.eabs = zeros((dim.nr + 1, dim.nz + 1))
         self.dens_update_lower = 0.0
 
-    def load_ne(self, fname):
-        """ Loads the electron density profile and interpolates it into z. 
-        If fname can be interpreted as a float, uses that value.
-        
+    def load_ne(self, fname, cutoff=None):
+        """ Loads the electron density profile and interpolates it into *z*. 
+        If *fname* can be interpreted as a float, uses that value.
+
         """
         try:
             self.ne[:, :] = float(fname)
@@ -57,9 +62,12 @@ class CylindricalLangevin(Cylindrical):
         tck = splrep(h, log(n), k=1)
         self.ne[:, :] = exp(splev(self.zf, tck))[newaxis, :]
 
+        if cutoff is not None:
+            self.ne[:, :] = where(self.ne[:, :] < cutoff, cutoff, self.ne[:, :])
+
 
     def load_ngas(self, fname):
-        """ Loads the density of neutrals and interpolates into z. """
+        """ Loads the density of neutrals and interpolates into *z*. """
         try:
             self.ngas[:, :] = float(fname)
         except ValueError:
