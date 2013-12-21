@@ -44,7 +44,7 @@ class Radiative2d(CylindricalLangevin):
         en = where(isfinite(en), en, 0)
         
         # Then update each photon species
-        for i in xrange(self.nphotons):
+        for i in range(self.nphotons):
             # We have to unravel and reshape the array bc splev only supports
             # 1d arrays.
             k = self.rates[i](ravel(en)).reshape(en.shape)
@@ -67,7 +67,7 @@ class Radiative2d(CylindricalLangevin):
     def save(self, g):
         super(Radiative2d, self).save(g)
 
-        for i in xrange(self.nphotons):
+        for i in range(self.nphotons):
             g.create_dataset(self.PHOTON_NAMES[i],
                              data=self.n[:, :, i], 
                              compression='gzip')
@@ -76,7 +76,7 @@ class Radiative2d(CylindricalLangevin):
     def load_data(self, g):
         super(Radiative2d, self).load_data(g)
 
-        for i in xrange(self.nphotons):
+        for i in range(self.nphotons):
             self.n[:, :, i] = array(g[self.PHOTON_NAMES[i]])
             
 
@@ -105,7 +105,7 @@ def asfunction(f, xfactor=1, yfactor=1, log=False, **kwargs):
         #                   bounds_error=False, fill_value=0)
         return constructor(x * xfactor, y * yfactor, k=1)
         
-    elif isinstance(f, str) or isinstance(f, unicode):
+    elif isinstance(f, str) or isinstance(f, str):
         tpl = tuple(loadtxt(f, unpack=True, **kwargs))
         return asfunction(tpl, xfactor=xfactor, yfactor=yfactor, log=log)
     
@@ -113,7 +113,7 @@ def asfunction(f, xfactor=1, yfactor=1, log=False, **kwargs):
         return f
 
     else:
-        return lambda(x): yfactor * f(x / xfactor)
+        return lambda x: yfactor * f(x / xfactor)
 
 
 class LogSpline(object):

@@ -1,4 +1,4 @@
-from __future__ import print_function
+
 
 import sys
 import os
@@ -119,7 +119,7 @@ def main():
         sys.exit()
 
     fp = h5py.File(args.input)
-    all_steps = fp['steps'].keys()
+    all_steps = list(fp['steps'].keys())
 
     if args.step == 'all':
         steps = all_steps
@@ -186,15 +186,15 @@ def main():
 
 
 def dump_params(fp):
-    pprint(dict((str(k), v) for k, v in fp.attrs.iteritems()))
+    pprint(dict((str(k), v) for k, v in fp.attrs.items()))
 
 def list_vars():
-    for vname, func in VAR_FUNCS.iteritems():
+    for vname, func in VAR_FUNCS.items():
         print("{}: {}".format(vname, func.__doc__))
 
 
 def list_steps(fp):
-    all_steps = fp['steps'].keys()
+    all_steps = list(fp['steps'].keys())
     for step in all_steps:
         g = fp['steps/%s' % step]
         print("%s    te = %6.5g ms  [%s]" % (step, g.attrs['te'] / co.milli, 

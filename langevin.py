@@ -238,7 +238,7 @@ class CylindricalLangevin(Cylindrical):
         
         gstep = g['steps/' + step]
 
-        for key, val in gstep.iteritems():
+        for key, val in gstep.items():
             if key[:5] == 'cpml_':
                 cpml = CylindricalCPML.load(val, instance)
                 instance.cpml.append(cpml)

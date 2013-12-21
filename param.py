@@ -53,16 +53,16 @@ class ParamContainer(object):
     def __init__(self):
         self.values = {}
 
-        self.params = {k: v for k, v in type(self).__dict__.iteritems() 
+        self.params = {k: v for k, v in type(self).__dict__.items() 
                        if isinstance(v, Parameter)}
-        self.param_names = {k for k, v in self.params.iteritems()}
+        self.param_names = {k for k, v in self.params.items()}
         
         
 
     def dict_load(self, d, warn_undef=True):
         """ Load the parameters from a dictionary-like object.  All other
         loaders must be based on this one. """
-        for key, value in d.iteritems():
+        for key, value in d.items():
             if key in self.param_names:
                 try:
                     p = self.params[key]
@@ -83,7 +83,7 @@ class ParamContainer(object):
 
     def asdict(self):
         return {name: getattr(self, name) 
-                  for name, p in self.params.iteritems()}
+                  for name, p in self.params.items()}
 
     def metadict(self):
         """ Returns a dictionary extended with metadata.  This is
@@ -218,7 +218,8 @@ class ParamContainer(object):
 
 
     def h5_dump(self, group):
-        for k, v in self.metadict().iteritems():
+        for k, v in self.metadict().items():
+            print(k, v)
             group.attrs[k] = v
 
 
@@ -229,13 +230,13 @@ class ParamContainer(object):
 
         return "\n\n\n".join("``%s``\n\n   %s %s" 
                              % (p.name, p.doc, bracket(p.default)) 
-                             for k, p in self.params.iteritems())
+                             for k, p in self.params.items())
             
 
 def param(*args, **kwargs):
     default = kwargs.get('default', '')
     def deco(func):
-        return Parameter(func.func_name, func, doc=func.__doc__, 
+        return Parameter(func.__name__, func, doc=func.__doc__, 
                          verifiers=args, default=default)
     return deco
 

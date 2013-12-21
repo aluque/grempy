@@ -68,9 +68,9 @@ class staggered(object):
             if self.inface[axis]:
                 continue
             slices0 = [s_[:] if i != axis else index0
-                       for i in xrange(len(self.inshape))]
+                       for i in range(len(self.inshape))]
             slices1 = [s_[:] if i != axis else index1
-                       for i in xrange(len(self.inshape))]
+                       for i in range(len(self.inshape))]
 
             self.full[slices0] = self.full[slices1]
             
@@ -424,7 +424,7 @@ class Cylindrical(object):
         """ Saves the state of this grid into g.  g has to satisfy the group
         interface of h5py.  """
         if f is None:
-            f = lambda(x): x.full
+            f = lambda x: x.full
 
         g.attrs['dt'] = self.dt
         g.attrs['te'] = self.te
@@ -968,14 +968,14 @@ def main():
     
     sim.set_dt(dt)
     
-    for i in xrange(10000):
+    for i in range(10000):
         t = i * dt
         sim.update_e()
         sim.ez.v[N / 2, N / 2, N / 2] = source(t)
         sim.update_h()
         
         if 0 == (i % nsave):
-            print i / nsave, t
+            print(i / nsave, t)
             pylab.clf()
             pylab.pcolor(sim.xf, sim.yf, abs(sim.ez.v[:, :, N / 2].T),
                          vmin=1e-8, vmax=1,

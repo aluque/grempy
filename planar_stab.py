@@ -89,7 +89,7 @@ def main():
     ax2.set_ylim([-1, 1])
     
     
-    for i in xrange(100000):
+    for i in range(100000):
         t = i * dt
         int_step()
         eline.set_ydata(E.copy())
@@ -103,7 +103,7 @@ def main():
         J[isz0 - 1] = 0.0
         J[isz1 + 1] = 0.0
 
-        print t, peak(t + dt / 2, Q / source_s, tau_r, m)
+        print(t, peak(t + dt / 2, Q / source_s, tau_r, m))
         pylab.draw()
         
         time.sleep(2)

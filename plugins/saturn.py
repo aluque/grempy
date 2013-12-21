@@ -4,7 +4,7 @@ from numpy import *
 import scipy.constants as co
 from scipy.interpolate import splrep, splev
 
-from plugin import Plugin
+from .plugin import Plugin
 
 X, Y, Z = 0, 1, 2
 R, Z_, PHI = 0, 1, 2
@@ -48,7 +48,7 @@ class Radiative(Plugin):
         en = where(isfinite(en), en, 0)
         
         # Then update each photon species
-        for i in xrange(self.N_PHOTON_TYPES):
+        for i in range(self.N_PHOTON_TYPES):
             # We have to unravel and reshape the array bc splev only supports
             # 1d arrays.
             k = self.rates[i](ravel(en)).reshape(en.shape)
@@ -57,14 +57,14 @@ class Radiative(Plugin):
 
 
     def save(self, sim, g):
-        for i in xrange(self.N_PHOTON_TYPES):
+        for i in range(self.N_PHOTON_TYPES):
             g.create_dataset(self.PHOTON_NAMES[i],
                              data=sim.nphotons[:, :, i], 
                              compression='gzip')
 
 
     def load_data(self, sim, g):
-        for i in xrange(self.N_PHOTON_TYPES):
+        for i in range(self.N_PHOTON_TYPES):
             sim.nphotons[:, :, i] = array(g[self.PHOTON_NAMES[i]])
 
 
@@ -84,7 +84,7 @@ def asfunction(f, xfactor=1, yfactor=1, log=False, **kwargs):
         #                   bounds_error=False, fill_value=0)
         return constructor(x * xfactor, y * yfactor, k=1)
         
-    elif isinstance(f, str) or isinstance(f, unicode):
+    elif isinstance(f, str) or isinstance(f, str):
         tpl = tuple(loadtxt(f, unpack=True, **kwargs))
         return asfunction(tpl, xfactor=xfactor, yfactor=yfactor, log=log)
     
@@ -92,7 +92,7 @@ def asfunction(f, xfactor=1, yfactor=1, log=False, **kwargs):
         return f
 
     else:
-        return lambda(x): yfactor * f(x / xfactor)
+        return lambda x: yfactor * f(x / xfactor)
 
 
 class LogSpline(object):

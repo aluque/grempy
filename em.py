@@ -250,7 +250,7 @@ def main():
     source_zflt = logical_and(sim.zf[newaxis, :] <= z1source, 
                               sim.zf[newaxis, :] >= z0source)
     
-    si0, si1 = [nonzero(source_zflt)[1][i] for i in 0, -1]
+    si0, si1 = [nonzero(source_zflt)[1][i] for i in (0, -1)]
 
     m = params.tau_f / params.tau_r
     
@@ -274,9 +274,9 @@ def main():
         p.initialize(sim)
 
     # == THE MAIN LOOP ==
-    for i in xrange(int(params.end_t / (insteps * params.dt))):
+    for i in range(int(params.end_t / (insteps * params.dt))):
         with ContextTimer("t = %f ms" % (t / co.milli)):
-            for j in xrange(insteps):
+            for j in range(insteps):
                 sim.update_e()
                 for p in plugins:
                     p.update_e(sim)

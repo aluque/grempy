@@ -4,7 +4,7 @@ from numpy import *
 import scipy.constants as co
 from scipy.interpolate import splrep, splev
 
-from plugin import Plugin
+from .plugin import Plugin
 
 class Energy(Plugin):        
     def initialize(self, sim):

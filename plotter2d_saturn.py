@@ -92,7 +92,7 @@ def wait_for(fname):
     printed = False
     while not os.path.exists(fname):
         if not printed:
-            print "Waiting for `%s'..." % fname
+            print("Waiting for `%s'..." % fname)
             printed = True
 
         time.sleep(10)
@@ -177,9 +177,9 @@ def panel(sim, profile, ofile, mun=2e24, **kwargs):
                        VProfile(abs(sim.ez.v.T), "$E_z$ [V/m]", logargs)]}
 
 
-    print ""
-    print "\teabs : ", amin(eabs), amax(eabs)
-    print "\tphotons : ", amin(photons), amax(photons)
+    print("")
+    print("\teabs : ", amin(eabs), amax(eabs))
+    print("\tphotons : ", amin(photons), amax(photons))
     
     pylab.title("t = %.4d $\mu$s" % (sim.te / co.micro))
 

@@ -20,10 +20,10 @@ def ContextTimer(name="Unknown", outf=sys.stdout):
 def main():
     with ContextTimer("Long loop"):
         s = 0
-        for i in xrange(10000000):
+        for i in range(10000000):
             s += i
 
-    print s
+    print(s)
 
 
 if __name__ == '__main__':
