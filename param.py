@@ -5,6 +5,7 @@ import os
 import socket
 import warnings
 import time
+import pwd
 
 class ParameterNotAllowed(ValueError):
     pass
@@ -92,7 +93,7 @@ class ParamContainer(object):
              '_ctime_': time.ctime(),
              '_command_': ' '.join(sys.argv),
              '_cwd_': os.getcwd(),
-             '_user_': os.getlogin(),
+             '_user_': pwd.getpwuid(os.geteuid())[0],
              '_host_': socket.gethostname()}
 
         d.update(self.asdict())
@@ -220,7 +221,7 @@ class ParamContainer(object):
     def h5_dump(self, group):
         for k, v in self.metadict().items():
             print(k, v)
-            group.attrs[k] = v
+            group.attrs[k] = maybe_encode_list(v)
 
 
     def rst_dump(self):
@@ -232,6 +233,19 @@ class ParamContainer(object):
                              % (p.name, p.doc, bracket(p.default)) 
                              for k, p in self.params.items())
             
+
+def maybe_encode_list(s):
+    """ This is a workaround for the lack of unicode support in h5py. """
+    if not isinstance(s, list):
+        return s
+    if len(s) == 0:
+        return s
+    if not isinstance(s[0], str):
+        return s
+    else:
+        print("HERE")
+        return [item.encode('utf8') for item in s]
+
 
 def param(*args, **kwargs):
     default = kwargs.get('default', '')

@@ -180,6 +180,9 @@ def peak(t, A, tau, m):
 def import_object(s):
     """ Tanslates module.object into __import__("module").getattr("object")
     """
+    if isinstance(s, bytes):
+        s = s.decode('utf-8')
+
     splitted = s.split('.')
     mod, obj = '.'.join(splitted[:-1]), splitted[-1]
     plugins = __import__('plugins.%s' % mod)
