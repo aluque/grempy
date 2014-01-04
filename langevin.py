@@ -59,6 +59,10 @@ class CylindricalLangevin(Cylindrical):
         #ipol = interp1d(h, log(n), bounds_error=False, fill_value=-inf)
         #n2 = exp(ipol(z))
 
+        # Some experimental data have negative values.  We drop them.
+        flt = n > 0
+        h, n = h[flt], n[flt]
+
         tck = splrep(h, log(n), k=1)
         self.ne[:, :] = exp(splev(self.zf, tck))[newaxis, :]
 
