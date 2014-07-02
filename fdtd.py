@@ -455,8 +455,8 @@ class Cylindrical(object):
         # This is not correct: for staggered grids, I am not
         # taking the closest point of some vars.  It's only for
         # output but should be fixed.
-        i = around(r / self.dr).astype('i')
-        j = around(z / self.dz).astype('i')
+        i = around((r - self.box.r0) / self.dr).astype('i')
+        j = around((z - self.box.z0) / self.dz).astype('i')
         
         def fmesh(d):
             return d.v[i[:, newaxis], j[newaxis, :]]
